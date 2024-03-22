@@ -1,0 +1,48 @@
+#=====================================================#
+#                                                     #
+#            Hostfile-mDNS deployer (v1.0)            #
+#                            <kim.hwiwon@outlook.com> #
+#                                                     #
+#=====================================================#
+
+#
+# to manage hostfile, run command 'hostfile' inside the container
+# e.g.)
+#   - podman-compose hmdns hostfile read
+#   - podman-compose hmdns hostfile edit
+#   - podman-compose hmdns hostfile write
+#
+
+version: '3'
+
+services:
+  hmdns:
+    image: 'docker.io/snoopy3476/hostfile-mdns:v1.0'
+    container_name: '${HMDNS_CNTNAME:-hmdns}'
+    network_mode: 'host'     # recommended for mDNS
+    restart: "${HMDNS_CNT_RESTART_POLICY:-unless-stopped}"
+    volumes:
+      - hmdns-config:/config:Z
+
+    healthcheck:
+      test: "/healthcheck"
+      interval: "${HMDNS_CNT_HEALTH_INTERVAL:-30s}"
+      timeout: "${HMDNS_CNT_HEALTH_TIMEOUT:-5s}"
+      retries: "${HMDNS_CNT_HEALTH_RETRIES:-2}"
+      start_period: "${HMDNS_CNT_HEALTH_START_PERIOD:-10s}"
+      start_interval: "${HMDNS_CNT_HEALTH_START_INTERVAL:-5s}"
+
+    #
+    #   optional environment variables
+    #
+    environment:
+      - HMDNS_HOSTNAME=${HMDNS_HOSTNAME}
+      - HMDNS_PORT=${HMDNS_PORT}
+      - HMDNS_TTL=${HMDNS_TTL}
+      - HMDNS_PARENT_HOSTNAME=${HMDNS_PARENT_HOSTNAME}
+      - HMDNS_PARENT_PORT=${HMDNS_PARENT_PORT}
+      - HMDNS_PARENT_SYNC_INTERVAL=${HMDNS_PARENT_SYNC_INTERVAL}
+
+volumes:
+  hmdns-config:
+    name: '${HMDNS_CNTNAME:-hmdns}-config'

@@ -1,0 +1,42 @@
+#!/bin/sh
+
+export HMDNS_HOSTNAME HMDNS_PORT HMDNS_TTL HMDNS_PARENT_HOSTNAME HMDNS_PARENT_PORT HMDNS_PARENT_SYNC_INTERVAL
+
+H_DOMAIN_FILE="${HOME}/.hmdns-healthcheck-domain"
+H_DOMAIN_POSTFIX=".___hmdns.localhost"
+
+
+# determine healthcheck identifier domain
+if ! [ -r "${H_DOMAIN_FILE}" ]
+then
+  for _ in $(seq 1000)
+  do
+    if H_DOMAIN_TMP="$(tr -dc '[:alnum:]' < /dev/urandom | head -c 60 2>/dev/null)""${H_DOMAIN_POSTFIX}" \
+        && ! multicast-dns "${H_DOMAIN_TMP}" >/dev/null 2>/dev/null \
+        && printf "%s" "${H_DOMAIN_TMP}" | tee "${H_DOMAIN_FILE}" >/dev/null 2>/dev/null
+    then
+      break;
+    fi
+  done
+fi
+
+
+# set healthcheck identifier domain
+unset HEALTHCHECK_DOMAIN
+HEALTHCHECK_DOMAIN="$(cat "${H_DOMAIN_FILE}")"
+if [ -z "${HEALTHCHECK_DOMAIN}" ]
+then
+  printf " * Failed to determine HEALTHCHECK_DOMAIN!\n";
+  exit 1
+fi
+export HEALTHCHECK_DOMAIN
+
+
+
+# catch and process external stop signal
+trap 'printf " * Stopping Hostfile-mDNS server...\n"; [ -n "${HMDNS_PID}" ] && kill "${HMDNS_PID}"; exit 0;' \
+     INT TERM
+
+hostfile-mdns.js "${1:-/config/hosts}" &
+HMDNS_PID="${!}"
+wait

@@ -1,0 +1,51 @@
+#!/bin/sh
+
+
+if [ "${1}" != "read" ] && [ "${1}" != "edit" ] && [ "${1}" != "write" ]
+then
+  printf "usage: %s <read|edit|write>" "$(basename "${0}")" >&2
+  exit 1
+fi
+
+
+
+HOSTFILE="/config/hosts"
+unset EXIT_CODE
+case "${1}" in
+  "read")
+    # print hostfile to stdout
+    [ ! -r "${HOSTFILE}" ] || cat "${HOSTFILE}"
+    EXIT_CODE="${?}"
+    ;;
+
+  "edit")
+    # edit hostfile
+    vi "${HOSTFILE}"
+    EXIT_CODE="${?}"
+    ;;
+
+  "write")
+    # print guide if tty
+    [ -t 1 ] && \
+      printf " * %s\n   %s\n\n========================================\n" \
+             "Write all hostfile contents below." \
+             "When done, press [Enter] key, then [Ctrl] + [D] key" \
+             >&2
+    # write to hostfile from stdin
+    tee "${HOSTFILE}" >/dev/null
+    EXIT_CODE="${?}"
+
+    # print footer if tty
+    [ -t 1 ] && \
+      printf "\n========================================\n\n" \
+             >&2
+    ;;
+
+  *)
+    EXIT_CODE=1
+    ;;
+esac
+
+
+
+exit "${EXIT_CODE}"

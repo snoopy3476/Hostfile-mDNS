@@ -1,0 +1,13 @@
+#!/bin/sh
+
+
+# set healthcheck identifier domain
+H_DOMAIN_FILE="${HOME}/.hmdns-healthcheck-domain"
+unset HEALTHCHECK_DOMAIN
+HEALTHCHECK_DOMAIN="$(cat "${H_DOMAIN_FILE}" 2>/dev/null)"
+[ -z "${HEALTHCHECK_DOMAIN}" ] && exit 1
+
+
+# test
+[ "$(multicast-dns "${HEALTHCHECK_DOMAIN}" 2>/dev/null)" = "127.0.0.1" ]
+exit ${?}
